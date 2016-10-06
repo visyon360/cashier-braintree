@@ -13,6 +13,7 @@ use Illuminate\Support\Collection;
 use Braintree\Customer as BraintreeCustomer;
 use Braintree\Transaction as BraintreeTransaction;
 use Braintree\Subscription as BraintreeSubscription;
+use Laravel\Cashier\Exceptions\BraintreeErrorException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 trait Billable
@@ -275,9 +276,10 @@ trait Billable
                 ],
             ], $options)
         );
-
+        
         if (! $response->success) {
-            throw new Exception('Braintree was unable to create a payment method: '.$response->message);
+            throw new BraintreeErrorException(
+                'Braintree was unable to create a payment method: '.$response->message, null, null, $response->errors);
         }
 
         $paypalAccount = $response->paymentMethod instanceof PaypalAccount;
