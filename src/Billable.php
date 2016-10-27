@@ -6,7 +6,7 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Braintree\PaymentMethod;
-use Braintree\PaypalAccount;
+use Braintree\PayPalAccount;
 use InvalidArgumentException;
 use Braintree\TransactionSearch;
 use Illuminate\Support\Collection;
@@ -397,7 +397,7 @@ trait Billable
 
         $paymentMethod = $response->customer->paymentMethods[0];
 
-        $paypalAccount = $paymentMethod instanceof PaypalAccount;
+        $paypalAccount = $paymentMethod instanceof PayPalAccount;
 
         $this->forceFill([
             'braintree_id' => $response->customer->id,
