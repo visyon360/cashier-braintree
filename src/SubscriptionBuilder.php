@@ -216,10 +216,9 @@ class SubscriptionBuilder
         if (! $this->user->braintree_id) {
             $customer = $this->user->createAsBraintreeCustomer($token, $options);
         } else {
-            $customer = $this->user->asBraintreeCustomer();
-
             if ($token) {
                 $this->user->updateCard($token);
+                $customer = $this->user->asBraintreeCustomer();
             }
         }
 
