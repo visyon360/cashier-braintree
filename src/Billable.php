@@ -392,7 +392,8 @@ trait Billable
         );
 
         if (! $response->success) {
-            throw new Exception('Unable to create Braintree customer: '.$response->message);
+            throw new BraintreeErrorException(
+                'Braintree was unable to create a payment method: '.$response->message, null, null, $response->errors);
         }
 
         $paymentMethod = $response->customer->paymentMethods[0];
