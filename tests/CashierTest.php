@@ -70,7 +70,7 @@ class CashierTest extends PHPUnit_Framework_TestCase
     {
         $user = User::create([
             'email' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
+            'name' => 'Taylor Otwell'
         ]);
 
         // Create Subscription
@@ -336,6 +336,71 @@ class CashierTest extends PHPUnit_Framework_TestCase
         $subscription = $user->subscription('main');
 
         $this->assertFalse($subscription->onGracePeriod());
+    }
+    
+    public function test_creating_subscription_with_an_existing_braintree_user()
+    {
+        $user = User::create([
+            'email' => 'unit_test_developers@visyon360.com',
+            'name' => 'Visyon Unit Test',
+            'braintree_id'  => "1100"
+        ]);
+        
+        // Create Subscription
+        $user->newSubscription('main', 'monthly-10-1')->create($this->getTestToken());
+        
+        //This test fails miserabily and don't know why
+        
+        $this->assertEquals(1, count($user->subscriptions));
+        $this->assertNotNull($user->subscription('main')->braintree_id);
+
+        $this->assertTrue($user->subscribed('main'));
+        $this->assertTrue($user->subscribed('main', 'monthly-10-1'));
+        $this->assertFalse($user->subscribed('main', 'monthly-10-2'));
+        $this->assertTrue($user->subscription('main')->active());
+        $this->assertFalse($user->subscription('main')->cancelled());
+        $this->assertFalse($user->subscription('main')->onGracePeriod());
+
+        // Cancel Subscription
+        $subscription = $user->subscription('main');
+        $subscription->cancel();
+
+        $this->assertTrue($subscription->active());
+        $this->assertTrue($subscription->cancelled());
+        $this->assertTrue($subscription->onGracePeriod());
+
+        // Modify Ends Date To Past
+        $oldGracePeriod = $subscription->ends_at;
+        $subscription->fill(['ends_at' => Carbon::now()->subDays(5)])->save();
+
+        $this->assertFalse($subscription->active());
+        $this->assertTrue($subscription->cancelled());
+        $this->assertFalse($subscription->onGracePeriod());
+
+        $subscription->fill(['ends_at' => $oldGracePeriod])->save();
+
+        // Resume Subscription
+        $subscription->resume();
+
+        $this->assertTrue($subscription->active());
+        $this->assertFalse($subscription->cancelled());
+        $this->assertFalse($subscription->onGracePeriod());
+
+        // Swap Plan
+        $subscription->swap('monthly-10-2');
+
+        $this->assertEquals('monthly-10-2', $subscription->braintree_plan);
+
+        // Invoice Tests
+        $invoice = $user->invoicesIncludingPending()[0];
+
+        $foundInvoice = $user->findInvoice($invoice->id);
+        $this->assertEquals($invoice->id, $foundInvoice->id);
+
+        $this->assertEquals('$10.00', $invoice->total());
+        $this->assertFalse($invoice->hasDiscount());
+        $this->assertEquals(0, count($invoice->coupons()));
+        $this->assertInstanceOf(Carbon::class, $invoice->date());
     }
 
     protected function getTestToken()

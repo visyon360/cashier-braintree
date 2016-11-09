@@ -147,7 +147,7 @@ class SubscriptionBuilder
         } else {
             $trialEndsAt = $this->trialDays ? Carbon::now()->addDays($this->trialDays) : null;
         }
-
+        
         return $this->user->subscriptions()->create([
             'name' => $this->name,
             'braintree_id'   => $response->subscription->id,
@@ -215,12 +215,13 @@ class SubscriptionBuilder
     {
         if (! $this->user->braintree_id) {
             $customer = $this->user->createAsBraintreeCustomer($token, $options);
-        } else {
-            if ($token) {
-                $this->user->updateCard($token);
-                $customer = $this->user->asBraintreeCustomer();
+        } else {            
+            if ($token) {                
+                $this->user->updateCard($token);                
             }
-        }
+            
+            $customer = $this->user->asBraintreeCustomer();
+        }        
 
         return $customer;
     }
