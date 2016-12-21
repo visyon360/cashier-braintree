@@ -6,7 +6,7 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Braintree\PaymentMethod;
-use Braintree\PaypalAccount;
+use Braintree\PayPalAccount;
 use InvalidArgumentException;
 use Braintree\TransactionSearch;
 use Illuminate\Support\Collection;
@@ -52,13 +52,26 @@ trait Billable
      * @param  array  $options
      * @return \Braintree\Transaction
      */
-    public function invoiceFor($description, $amount, array $options = [])
+    public function tab($description, $amount, array $options = [])
     {
         return $this->charge($amount, array_merge($options, [
             'customFields' => [
                 'description' => $description,
             ],
         ]));
+    }
+
+    /**
+     * Invoice the customer for the given amount (alias).
+     *
+     * @param  string  $description
+     * @param  int  $amount
+     * @param  array  $options
+     * @return \Braintree\Transaction
+     */
+    public function invoiceFor($description, $amount, array $options = [])
+    {
+        return $this->tab($description, $amount, $options);
     }
 
     /**
@@ -74,7 +87,7 @@ trait Billable
     }
 
     /**
-     * Determine if the user is on trial.
+     * Determine if the model is on trial.
      *
      * @param  string  $subscription
      * @param  string|null  $plan
@@ -97,7 +110,7 @@ trait Billable
     }
 
     /**
-     * Determine if the user is on a "generic" trial at the user level.
+     * Determine if the model is on a "generic" trial at the user level.
      *
      * @return bool
      */
@@ -107,7 +120,7 @@ trait Billable
     }
 
     /**
-     * Determine if the user has a given subscription.
+     * Determine if the model has a given subscription.
      *
      * @param  string  $subscription
      * @param  string|null  $plan
@@ -146,7 +159,7 @@ trait Billable
     }
 
     /**
-     * Get all of the subscriptions for the user.
+     * Get all of the subscriptions for the model.
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
@@ -294,7 +307,7 @@ trait Billable
     }
 
     /**
-     * Update the payment method token for all of the user's subscriptions.
+     * Update the payment method token for all of the model's subscriptions.
      *
      * @param  string  $token
      * @return void
@@ -330,7 +343,7 @@ trait Billable
     }
 
     /**
-     * Determine if the user is actively subscribed to one of the given plans.
+     * Determine if the model is actively subscribed to one of the given plans.
      *
      * @param  array|string  $plans
      * @param  string  $subscription
@@ -367,7 +380,7 @@ trait Billable
     }
 
     /**
-     * Create a Braintree customer for the given user.
+     * Create a Braintree customer for the given model.
      *
      * @param  string  $token
      * @param  array  $options
@@ -395,7 +408,7 @@ trait Billable
 
         $paymentMethod = $response->customer->paymentMethods[0];
 
-        $paypalAccount = $paymentMethod instanceof PaypalAccount;
+        $paypalAccount = $paymentMethod instanceof PayPalAccount;
 
         $this->forceFill([
             'braintree_id' => $response->customer->id,
@@ -418,7 +431,7 @@ trait Billable
     }
 
     /**
-     * Get the Braintree customer for the user.
+     * Get the Braintree customer for the model.
      *
      * @return \Braintree\Customer
      */

@@ -29,13 +29,30 @@ class Subscription extends Model
     ];
 
     /**
+     * Indicates plan changes should be prorated.
+     *
+     * @var bool
+     */
+    protected $prorate = true;
+
+    /**
      * Get the user that owns the subscription.
      */
     public function user()
     {
-        $model = getenv('BRAINTREE_MODEL') ?: config('services.braintree.model');
+        return $this->owner();
+    }
 
-        return $this->belongsTo($model, 'user_id');
+    /**
+     * Get the model related to the subscription.
+     */
+    public function owner()
+    {
+        $model = getenv('BRAINTREE_MODEL') ?: config('services.braintree.model', 'App\\User');
+
+        $model = new $model;
+
+        return $this->belongsTo(get_class($model), $model->getForeignKey());
     }
 
     /**
@@ -109,13 +126,13 @@ class Subscription extends Model
         }
 
         if (! $this->active()) {
-            return $this->user->newSubscription($this->name, $plan)
+            return $this->owner->newSubscription($this->name, $plan)
                                 ->skipTrial()->create();
         }
 
         $plan = BraintreeService::findPlan($plan);
 
-        if ($this->wouldChangeBillingFrequency($plan)) {
+        if ($this->wouldChangeBillingFrequency($plan) && $this->prorate) {
             return $this->swapAcrossFrequencies($plan);
         }
 
@@ -123,11 +140,11 @@ class Subscription extends Model
 
         $response = BraintreeSubscription::update($subscription->id, [
             'planId' => $plan->id,
-            'price' => $plan->price * (1 + ($this->user->taxPercentage() / 100)),
+            'price' => $plan->price * (1 + ($this->owner->taxPercentage() / 100)),
             'neverExpires' => true,
             'numberOfBillingCycles' => null,
             'options' => [
-                'prorateCharges' => true,
+                'prorateCharges' => $this->prorate,
             ],
         ]);
 
@@ -184,7 +201,7 @@ class Subscription extends Model
 
         $this->cancelNow();
 
-        return $this->user->newSubscription($this->name, $plan->id)
+        return $this->owner->newSubscription($this->name, $plan->id)
                             ->skipTrial()->create(null, [], $options);
     }
 
@@ -360,6 +377,18 @@ class Subscription extends Model
         ]);
 
         $this->fill(['ends_at' => null])->save();
+
+        return $this;
+    }
+
+    /**
+     * Indicate that plan changes should not be prorated.
+     *
+     * @return $this
+     */
+    public function noProrate()
+    {
+        $this->prorate = false;
 
         return $this;
     }

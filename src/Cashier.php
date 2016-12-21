@@ -2,6 +2,8 @@
 
 namespace Laravel\Cashier;
 
+use Exception;
+
 class Cashier
 {
     /**
@@ -26,7 +28,7 @@ class Cashier
     protected static $formatCurrencyUsing;
 
     /**
-     * Set the currency to be used when billing users.
+     * Set the currency to be used when billing models.
      *
      * @param  string  $currency
      * @param  string|null  $symbol
